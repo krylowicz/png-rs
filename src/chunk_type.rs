@@ -1,3 +1,5 @@
+use std::fmt;
+use std::fmt::{Display, Formatter};
 use std::convert::TryFrom;
 use std::str::FromStr;
 
@@ -35,6 +37,12 @@ impl FromStr for ChunkType {
             (false, _) => Err(format!("Invalid string length. Expected 4, got {:?}", string.len())),
             (_, false) => Err(String::from("The string contains non-ascii characters"))
         }
+    }
+}
+
+impl Display for ChunkType {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+       write!(f, "<ChunkType with bytes: {:?}>", self.bytes) 
     }
 }
 
