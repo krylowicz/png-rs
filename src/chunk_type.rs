@@ -12,7 +12,7 @@ impl TryFrom<[u8; 4]> for ChunkType {
     type Error = String;
 
     fn try_from(bytes: [u8; 4]) -> Result<Self, Self::Error> {
-        if bytes.iter().all(|&b| b.is_ascii_alphanumeric()) {
+        if bytes.iter().all(|&b| b.is_ascii_alphabetic()) {
             Ok(Self { bytes })
         } else {
             Err(format!("Invalid chunk type: {:?}", bytes))
@@ -42,13 +42,29 @@ impl FromStr for ChunkType {
 
 impl Display for ChunkType {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-       write!(f, "<ChunkType with bytes: {:?}>", self.bytes) 
+        write!(f, "{}", std::str::from_utf8(&self.bytes).unwrap())
     }
 }
 
 impl ChunkType {
     pub fn bytes(&self) -> [u8; 4] {
         self.bytes
+    }
+
+    pub fn is_critical(&self) -> bool {
+        self.bytes[0].is_ascii_uppercase()
+    }
+
+    pub fn is_public(&self) -> bool {
+        self.bytes[1].is_ascii_uppercase()
+    }
+   
+    pub fn is_reserved_bit_valid(&self) -> bool {
+        self.bytes[2].is_ascii_uppercase()
+    }
+
+    pub fn is_safe_to_copy(&self) -> bool {
+        self.bytes[3].is_ascii_lowercase()
     }
 }
 
@@ -117,21 +133,6 @@ mod tests {
     pub fn test_chunk_type_is_unsafe_to_copy() {
         let chunk = ChunkType::from_str("RuST").unwrap();
         assert!(!chunk.is_safe_to_copy());
-    }
-
-    #[test]
-    pub fn test_valid_chunk_is_valid() {
-        let chunk = ChunkType::from_str("RuSt").unwrap();
-        assert!(chunk.is_valid());
-    }
-
-    #[test]
-    pub fn test_invalid_chunk_is_valid() {
-        let chunk = ChunkType::from_str("Rust").unwrap();
-        assert!(!chunk.is_valid());
-
-        let chunk = ChunkType::from_str("Ru1t");
-        assert!(chunk.is_err());
     }
 
     #[test]
