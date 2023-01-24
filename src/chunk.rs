@@ -1,6 +1,9 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+
+use crc::{Crc, CRC_32_ISO_HDLC};
+
 use crate::chunk_type::ChunkType;
 
 #[derive(Debug)]
@@ -27,7 +30,22 @@ impl Display for Chunk {
 
 impl Chunk {
     pub fn new(chunk_type: ChunkType, data: Vec<u8>) -> Self {
-        todo!()
+        let length = data.len() as u32;
+
+        let crc_bytes: Vec<u8> = chunk_type
+            .bytes()
+            .iter()
+            .chain(data.iter())
+            .copied()
+            .collect();
+        let crc = Crc::<u32>::new(&CRC_32_ISO_HDLC).checksum(&crc_bytes);
+
+        Self {
+            length,
+            chunk_type,
+            data,
+            crc
+        }
     }
 
     pub fn length(&self) -> u32 {
@@ -57,7 +75,6 @@ impl Chunk {
 
 mod tests {
     use super::*;
-    use std::str::FromStr;
 
     fn testing_chunk() -> Chunk {
         let data_length: u32 = 42;
