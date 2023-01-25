@@ -18,7 +18,29 @@ impl TryFrom<&[u8]> for Chunk {
     type Error = String;
 
     fn try_from(data: &[u8]) -> Result<Self, Self::Error> {
-        todo!()
+        if data.len() < Self::DATA_BYTES {
+            // TODO: better error handling (use ?)
+            return Err(format!("Length of data is too short. Expected {}, got {}", Self::DATA_BYTES, data.len()));
+        }
+
+        let (length_bytes, rest) = data.split_at(4);
+        let length = u32::from_be_bytes(length_bytes.try_into().unwrap());
+
+        let (chunk_type_bytes, rest) = rest.split_at(4);
+        let chunk_type = ChunkType::try_from(
+            <&[u8] as TryInto<[u8; 4]>>::try_into(chunk_type_bytes).unwrap()
+        ).unwrap();
+
+        let (data_bytes, crc_bytes) = rest.split_at(rest.len() - 4);
+        let data = data_bytes.to_vec();
+        let crc = u32::from_be_bytes(crc_bytes.try_into().unwrap());
+
+        Ok(Chunk {
+            length,
+            chunk_type,
+            data,
+            crc,
+        })
     }
 }
 
@@ -29,6 +51,12 @@ impl Display for Chunk {
 }
 
 impl Chunk {
+    pub const LENGTH_BYTES: usize = 4;
+    pub const CHUNK_TYPE_BYTES: usize = 4;
+    pub const CRC_BYTES: usize = 4;
+    
+    pub const DATA_BYTES: usize = Self::LENGTH_BYTES + Self::CHUNK_TYPE_BYTES + Self::CRC_BYTES;
+    
     pub fn new(chunk_type: ChunkType, data: Vec<u8>) -> Self {
         let length = data.len() as u32;
 
@@ -56,8 +84,8 @@ impl Chunk {
         &self.chunk_type
     }
     
-    pub fn data(&self) {
-        todo!()
+    pub fn data(&self) -> &[u8] {
+        &self.data
     }
 
     pub fn crc(&self) -> u32 {
