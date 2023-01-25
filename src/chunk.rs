@@ -1,7 +1,6 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
-
 use crc::{Crc, CRC_32_ISO_HDLC};
 
 use crate::{Result, Error};
@@ -51,7 +50,7 @@ impl TryFrom<&[u8]> for Chunk {
 
 impl Display for Chunk {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        todo!()
+        write!(f, "{}", String::from_utf8_lossy(&self.data))
     }
 }
 
