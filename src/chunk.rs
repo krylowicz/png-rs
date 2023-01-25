@@ -33,7 +33,12 @@ impl TryFrom<&[u8]> for Chunk {
 
         let (data_bytes, crc_bytes) = rest.split_at(rest.len() - 4);
         let data = data_bytes.to_vec();
+
         let crc = u32::from_be_bytes(crc_bytes.try_into()?);
+
+        if crc != Self::calculate_crc(&chunk_type, &data) {
+            return Err(String::from("CRC is invalid").into());
+        }
 
         Ok(Chunk {
             length,
@@ -60,13 +65,7 @@ impl Chunk {
     pub fn new(chunk_type: ChunkType, data: Vec<u8>) -> Self {
         let length = data.len() as u32;
 
-        let crc_bytes: Vec<u8> = chunk_type
-            .bytes()
-            .iter()
-            .chain(data.iter())
-            .copied()
-            .collect();
-        let crc = Crc::<u32>::new(&CRC_32_ISO_HDLC).checksum(&crc_bytes);
+        let crc = Self::calculate_crc(&chunk_type, &data);
 
         Self {
             length,
@@ -98,6 +97,16 @@ impl Chunk {
 
     pub fn as_bytes(&self) -> Vec<u8> {
         todo!()
+    }
+
+    pub fn calculate_crc(chunk_type: &ChunkType, data: &Vec<u8>) -> u32 {
+        let crc_bytes: Vec<u8> = chunk_type
+            .bytes()
+            .iter()
+            .chain(data.iter())
+            .copied()
+            .collect();
+         Crc::<u32>::new(&CRC_32_ISO_HDLC).checksum(&crc_bytes)
     }
 }
 
