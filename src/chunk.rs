@@ -1,9 +1,10 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
-use std::str::FromStr;
+
 
 use crc::{Crc, CRC_32_ISO_HDLC};
 
+use crate::{Result, Error};
 use crate::chunk_type::ChunkType;
 
 #[derive(Debug)]
@@ -15,25 +16,24 @@ struct Chunk {
 }
 
 impl TryFrom<&[u8]> for Chunk {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(data: &[u8]) -> Result<Self, Self::Error> {
+    fn try_from(data: &[u8]) -> Result<Self> {
         if data.len() < Self::DATA_BYTES {
-            // TODO: better error handling (use ?)
-            return Err(format!("Length of data is too short. Expected {}, got {}", Self::DATA_BYTES, data.len()));
+            return Err(format!("Length of data is too short. Expected {}, got {}", Self::DATA_BYTES, data.len()).into());
         }
 
         let (length_bytes, rest) = data.split_at(4);
-        let length = u32::from_be_bytes(length_bytes.try_into().unwrap());
+        let length = u32::from_be_bytes(length_bytes.try_into()?);
 
         let (chunk_type_bytes, rest) = rest.split_at(4);
         let chunk_type = ChunkType::try_from(
-            <&[u8] as TryInto<[u8; 4]>>::try_into(chunk_type_bytes).unwrap()
-        ).unwrap();
+            <&[u8] as TryInto<[u8; 4]>>::try_into(chunk_type_bytes)?
+        )?;
 
         let (data_bytes, crc_bytes) = rest.split_at(rest.len() - 4);
         let data = data_bytes.to_vec();
-        let crc = u32::from_be_bytes(crc_bytes.try_into().unwrap());
+        let crc = u32::from_be_bytes(crc_bytes.try_into()?);
 
         Ok(Chunk {
             length,
@@ -92,8 +92,8 @@ impl Chunk {
         self.crc
     }
 
-    pub fn data_as_string(&self) -> crate::Result<String> {
-        todo!()
+    pub fn data_as_string(&self) -> Result<String> {
+        Ok(String::from_utf8_lossy(&self.data).into_owned())
     }
 
     pub fn as_bytes(&self) -> Vec<u8> {
@@ -103,6 +103,7 @@ impl Chunk {
 
 mod tests {
     use super::*;
+    use::std::str::FromStr;
 
     fn testing_chunk() -> Chunk {
         let data_length: u32 = 42;

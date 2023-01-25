@@ -3,27 +3,29 @@ use std::fmt::{Display, Formatter};
 use std::convert::TryFrom;
 use std::str::FromStr;
 
+use crate::{Result, Error};
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct ChunkType {
     bytes: [u8; 4],
 }
 
 impl TryFrom<[u8; 4]> for ChunkType {
-    type Error = String;
+    type Error = Error;
 
-    fn try_from(bytes: [u8; 4]) -> Result<Self, Self::Error> {
+    fn try_from(bytes: [u8; 4]) -> Result<Self> {
         if bytes.iter().all(|&b| b.is_ascii_alphabetic()) {
             Ok(Self { bytes })
         } else {
-            Err(format!("Invalid chunk type: {:?}", bytes))
+            Err(format!("Invalid chunk type: {:?}", bytes).into())
         }
     }
 }
 
 impl FromStr for ChunkType {
-    type Err = String;
+    type Err = Error;
     
-    fn from_str(string: &str) -> Result<Self, Self::Err> {
+    fn from_str(string: &str) -> Result<Self> {
         match (string.is_ascii(), string.len() == 4) {
             (true, true) => {
                 let mut bytes: [u8; 4] = [0; 4];
@@ -34,8 +36,8 @@ impl FromStr for ChunkType {
 
                 Ok(Self { bytes })
             },
-            (false, _) => Err(format!("Invalid string length. Expected 4, got {:?}", string.len())),
-            (_, false) => Err(String::from("The string contains non-ascii characters"))
+            (false, _) => Err(format!("Invalid string length. Expected 4, got {:?}", string.len()).into()),
+            (_, false) => Err(String::from("The string contains non-ascii characters").into())
         }
     }
 }
